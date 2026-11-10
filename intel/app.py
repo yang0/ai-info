@@ -8,12 +8,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from .models import Settings, utcnow
 from .runner import Runner, AGENTS
 from .store import Store
 from .analysis import make_brief
+from .llm import ModelUpdate, ModelError, test_connection
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -34,6 +36,12 @@ def create_app(data_dir=None):
 
     app = FastAPI(title='AI INFO · 情报作战台', lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.store, app.state.runner = store, runner
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request, exc):
+        # Validation payloads must not reflect submitted API keys.
+        return JSONResponse({'detail': [{'loc': e['loc'], 'msg': e['msg'], 'type': e['type']}
+                                        for e in exc.errors()]}, status_code=422)
 
     @app.middleware('http')
     async def protection(request: Request, call_next):
@@ -63,24 +71,54 @@ def create_app(data_dir=None):
 
     @app.get('/api/health')
     def health():
-        return {'status': 'ok', 'version': '0.1.0'}
+        return {'status': 'ok', 'version': '0.2.0'}
 
     @app.get('/api/state')
     def state():
         settings = store.settings()
+        model = store.model_config()
         snapshot = store.snapshot(settings.dataset_key())
         return {'settings': settings.model_dump(), 'scope': settings.dataset_key(), 'snapshot': snapshot, 'active': runner.active,
                 'agents': AGENTS, 'runs': store.runs(), 'events': store.recent_events(),
                 'capabilities': {'opencli': bool(shutil.which('opencli')), 'agent_reach': bool(shutil.which('agent-reach')),
-                    'llm': bool(os.getenv('OLLAMA_MODEL')), 'llm_model': os.getenv('OLLAMA_MODEL', '')},
+                    'llm': model.ready, 'llm_model': model.model}, 'model': model.public(),
                 'server_time': utcnow().isoformat(), 'cooldown_until': runner.cooldown_until}
 
     @app.put('/api/settings')
     async def settings(body: Settings):
         if runner.active:
             raise HTTPException(409, '扫描执行中，请先停止再修改监控配置')
+        body = body.model_copy(update={'model_revision': store.settings().model_revision})
         store.save_settings(body)
         return body.model_dump()
+
+    @app.get('/api/model')
+    def model_config():
+        return store.model_config().public()
+
+    @app.put('/api/model')
+    async def save_model(body: ModelUpdate):
+        if runner.active:
+            raise HTTPException(409, '扫描执行中，请先停止再修改模型配置')
+        try:
+            return store.save_model(body).public()
+        except ModelError as exc:
+            raise HTTPException(400, str(exc)) from None
+        except ValueError:
+            raise HTTPException(400, '接口地址已改变，请重新填写 API Key 或勾选清除旧密钥') from None
+
+    @app.post('/api/model/test')
+    async def test_model(body: ModelUpdate):
+        if runner.active:
+            raise HTTPException(409, '扫描执行中，请完成或停止扫描后再测试模型')
+        try:
+            config = store.resolve_model(body)
+        except ValueError:
+            raise HTTPException(400, '接口地址已改变，请重新填写 API Key 或勾选清除旧密钥') from None
+        try:
+            return await test_connection(config)
+        except ModelError as exc:
+            raise HTTPException(400, str(exc)) from None
 
     @app.post('/api/runs', status_code=202)
     async def run():

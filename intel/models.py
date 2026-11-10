@@ -21,10 +21,13 @@ class Settings(BaseModel):
     result_limit: int = Field(default=50, ge=5, le=100)
     min_authors: int = Field(default=3, ge=2, le=30)
     llm_enabled: bool = False
+    model_revision: int = Field(default=0, ge=0)
 
     def dataset_key(self):
         # Changed query scopes must not reuse posts or snapshots from an old mission.
         scope = [self.mode, sorted(self.queries), self.min_authors, self.llm_enabled]
+        if self.llm_enabled:
+            scope.append(self.model_revision)
         return self.mode + ':' + hashlib.sha256(json.dumps(scope).encode()).hexdigest()[:16]
 
     @field_validator('queries')

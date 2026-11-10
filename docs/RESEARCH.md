@@ -8,7 +8,7 @@
 | [IntelBureau-v2](https://github.com/yang0/IntelBureau-v2) | 私有参考 | 本轮未确认可复用授权 | 带出处的阶段流水线、作战大屏、离线模式 | 仅参考产品思路，未搬运代码或私有资源 |
 | [Agent Reach](https://github.com/Panniantong/Agent-Reach) | 110,712 | MIT | 免费多平台工具、统一 JSON、登录与错误状态 | 作为可选采集进程，保留采样排序边界 |
 | [TrendRadar](https://github.com/sansan0/TrendRadar) | 63,563 | GPL-3.0 | 多源聚合、关键词筛选、轻部署 | 参考配置体验，未复制代码 |
-| [BettaFish](https://github.com/666ghj/BettaFish) | 42,614 | GPL-2.0 | 不同职责 Agent、交叉分析与报告 | 采用机会 / 质疑双视角，本地模型可选，未复制代码 |
+| [BettaFish](https://github.com/666ghj/BettaFish) | 42,614 | GPL-2.0 | 不同职责 Agent、交叉分析与报告 | 采用机会 / 质疑双视角，模型接口可配置，未复制代码 |
 | [OpenCLI](https://github.com/jackwener/opencli) | 未记录 | 上游 README 标识 MIT | 免费使用已登录浏览器，Twitter 最新搜索 | 推荐只读采集入口，用户单独安装 |
 
 ## 为什么推荐 OpenCLI Latest
@@ -26,7 +26,7 @@
 ## 免费与实现边界
 
 - 不使用 X 官方付费 API、商业搜索服务或付费代理。
-- 不依赖付费云端模型；默认规则流程，可选本机 Ollama。
+- X 采集维持免费浏览器方案；模型统一使用 OpenAI 兼容接口，未配置时使用规则流程，额度与费用由提供方决定。
 - 不复制参考项目的实现代码、Logo 或运营信源名单。
-- 暂不引入通用大 Agent 框架：当前 DAG 固定，轻量异步编排足以支持并发、取消、状态和本地模型角色。需要动态研究工具与多轮任务时再评估框架。
+- 暂不引入通用大 Agent 框架：当前 DAG 固定，轻量异步编排足以支持并发、取消、状态和兼容接口模型角色。需要动态研究工具与多轮任务时再评估框架。
 - SQLite 与无需前端构建的界面适合单机首版，暂不增加 PostgreSQL、Redis、Docker 的部署成本。
