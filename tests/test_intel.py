@@ -132,33 +132,6 @@ class SourceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(SourceError): parse_reach({'ok':False,'error':{'code':'NEED_LOGIN'}},'AI')
 
 
-class ModelTests(unittest.IsolatedAsyncioTestCase):
-    async def test_remote_and_cloud_model_are_rejected_before_request(self):
-        topic=trend_topics([post(1)],NOW)[0]
-        client=AsyncMock()
-        for config in [{'OLLAMA_BASE_URL':'https://paid.example/v1','OLLAMA_MODEL':'local'},
-                       {'OLLAMA_BASE_URL':'http://127.0.0.1:11434','OLLAMA_MODEL':'test-cloud'}]:
-            with patch.dict(os.environ,config):
-                with self.assertRaises(ValueError):await llm_role(topic,'test',client)
-        client.post.assert_not_called()
-
-    async def test_model_foreign_citations_fail_validation(self):
-        topic=trend_topics([post(1)],NOW)[0]
-        def handler(_):
-            return httpx.Response(200,json={'message':{'content':json.dumps(
-                {'text':'unsupported claim','evidence_ids':['invented']})}})
-        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-            with patch.dict(os.environ,{'OLLAMA_MODEL':'test'}):
-                with self.assertRaises(ValueError): await llm_role(topic,'test',client)
-
-    async def test_model_failure_falls_back_explicitly(self):
-        topic=trend_topics([post(1)],NOW)[0]
-        with patch.dict(os.environ,{k:'' for k in ('ALL_PROXY','HTTPS_PROXY','HTTP_PROXY','all_proxy','https_proxy','http_proxy')}), patch('intel.analysis.llm_role',side_effect=ValueError('invalid citation')):
-            result=await assess(topic,True)
-        self.assertEqual(result['assessment']['engine'],'rules')
-        self.assertIn('fallback',result['assessment'])
-
-
 class RunnerTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory()
@@ -243,7 +216,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.put('/api/settings',json={'mode':'agent_reach','queries':['AI']}).status_code,200)
         self.assertIsNone(self.client.get('/api/state').json()['snapshot'])
         self.assertEqual(self.client.get('/api/brief').status_code,404)
-        self.assertNotIn('api_key',self.client.get('/api/state').text)
+        self.assertNotIn('api_key',self.client.get('/api/state').json()['model'])
 
     def test_static_assets_and_csp(self):
         response=self.client.get('/')

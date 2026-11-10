@@ -55,7 +55,7 @@ function renderDetail() {
   const t=topic(); if(!t) { $('#topic-detail').innerHTML=empty('选择一个话题，追踪原帖和研判证据'); return; }
   const a=t.assessment || {};
   const safeLink = url => { try {const p=new URL(url); return p.protocol==='https:'&&['x.com','www.x.com','twitter.com','www.twitter.com'].includes(p.hostname)&&/^\/[A-Za-z0-9_]+\/status\/\d+\/?$/.test(p.pathname)&&!p.username;} catch {return false;} };
-  $('#topic-detail').innerHTML=`<div class="detail-topline">${tag(t)}<span class="mono">INTEL #${e(t.id.slice(0,6).toUpperCase())}</span></div><h3>${e(t.title)}</h3><p class="verification">◇ ${e(t.verification)}</p><div class="detail-stats"><div><b class="amber">${t.score}</b><small>趋势分 / 100</small></div><div><b>${t.cold_start?'—':`${t.growth>0?'+':''}${t.growth.toFixed(0)}%`}</b><small>15 分钟环比</small></div><div><b>${t.authors}</b><small>当前窗口作者</small></div></div><div class="assessment"><h4>↗ 机会观察 <span class="engine-label">${a.engine==='llm'?'本地模型':'规则分析'}</span></h4><p>${e(a.opportunity || '等待研判')}</p></div><div class="assessment skeptic"><h4>◇ 反方视角</h4><p>${e(a.skeptic || '等待研判')}</p></div>${a.fallback?`<p class="field-help">${e(a.fallback)}</p>`:''}<div class="evidence-title">原始证据 <small>${t.evidence.length} SOURCES</small></div>${t.evidence.map(p=>`<article class="evidence-card"><div class="evidence-meta"><span>@${e(p.author)}</span><time>${time(p.created_at)}</time></div><p>${e(p.text)}</p>${safeLink(p.url)?`<a href="${e(p.url)}" target="_blank" rel="noopener noreferrer">查看 X 原帖 ↗</a>`:'<small>模拟样本 · 无真实原帖</small>'}</article>`).join('')}`;
+  $('#topic-detail').innerHTML=`<div class="detail-topline">${tag(t)}<span class="mono">INTEL #${e(t.id.slice(0,6).toUpperCase())}</span></div><h3>${e(t.title)}</h3><p class="verification">◇ ${e(t.verification)}</p><div class="detail-stats"><div><b class="amber">${t.score}</b><small>趋势分 / 100</small></div><div><b>${t.cold_start?'—':`${t.growth>0?'+':''}${t.growth.toFixed(0)}%`}</b><small>15 分钟环比</small></div><div><b>${t.authors}</b><small>当前窗口作者</small></div></div><div class="assessment"><h4>↗ 机会观察 <span class="engine-label">${a.engine==='llm'?'AI 分析':'规则分析'}</span></h4><p>${e(a.opportunity || '等待研判')}</p></div><div class="assessment skeptic"><h4>◇ 反方视角</h4><p>${e(a.skeptic || '等待研判')}</p></div>${a.fallback?`<p class="field-help">${e(a.fallback)}</p>`:''}<div class="evidence-title">原始证据 <small>${t.evidence.length} SOURCES</small></div>${t.evidence.map(p=>`<article class="evidence-card"><div class="evidence-meta"><span>@${e(p.author)}</span><time>${time(p.created_at)}</time></div><p>${e(p.text)}</p>${safeLink(p.url)?`<a href="${e(p.url)}" target="_blank" rel="noopener noreferrer">查看 X 原帖 ↗</a>`:'<small>模拟样本 · 无真实原帖</small>'}</article>`).join('')}`;
 }
 function agentState(id) {
   const run = state.active || state.runs.find(r=>r.scope===state.scope);
@@ -79,10 +79,10 @@ function renderOtherViews() {
   $('#sources-view').innerHTML=`<div class="view-grid">${[
     ['OpenCLI 最新动态','opencli',cap.opencli,'推荐免费通道。只读使用已登录的 Chrome，明确选择 X 最新动态（Latest）标签，更适合监控正在起势的话题。'],
     ['Agent Reach','agent_reach',cap.agent_reach,'通过本机 Agent Reach 统一接口搜索 X。当前上游默认热门排序，作为热门搜索抽样，不能代表最新时间线。'],
-    ['Ollama 本地研判','ollama',cap.llm,'可选的本地模型。机会与质疑两个角色交叉分析，仅连接本机 Ollama，不需要云端 API Key。'],
+    ['OpenAI 兼容接口','model',cap.llm,'支持 DeepSeek 及兼容 Chat Completions 的中转站。填写接口地址、API Key 和模型名称即可用于机会 / 质疑双视角研判。'],
     ['演示沙盘','demo',true,'合成 AI 讨论样本，用于体验趋势雷达、研判流程与任务电台。与真实数据隔离，不代表当前新闻。']
-  ].map(([name,key,ready,desc])=>`<article class="panel info-card"><div class="source-title"><span class="eyebrow">${e(key.toUpperCase())}</span><span class="source-status">${ready?'● '+(['agent_reach','opencli'].includes(key)?'已安装，登录待检查':'可用'):'○ 待配置'}</span></div><h3>${name}</h3><p>${desc}</p><span class="badge">${s.mode===key?'当前使用':key==='ollama'?(s.llm_enabled?'已启用':'可选增强'):'未启用'}</span></article>`).join('')}</div><section class="panel activity-panel"><div class="panel-header"><h2>免费接入 <small>GET CONNECTED</small></h2></div><div class="query-list"><p>1. 安装 Node.js ≥ 20.18.1 后，在终端运行 <code>npm install -g @jackwener/opencli</code>。</p><p>2. 在 Chrome 安装 <a class="amber" href="https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk" target="_blank" rel="noopener noreferrer">官方 OpenCLI 扩展 ↗</a>，并自行登录 X。</p><p>3. 运行 <code>opencli doctor</code> 检查连接，保持 Chrome 打开，然后点击立即扫描。</p><p class="muted">已有 Agent Reach 可在配置中选择；本地 Ollama 是可选增强，不安装也能用。</p></div></section><section class="panel activity-panel"><div class="panel-header"><h2>监控查询 <small>WATCH QUERIES</small></h2><button class="button secondary" data-config>编辑查询</button></div><div class="query-list">${s.queries.map((q,i)=>`<div class="query-line"><span class="amber mono">0${i+1} / </span>${e(q)}</div>`).join('')}</div></section><div class="view-notice">当前节奏：${s.auto_scan?'自动扫描，每 '+s.interval_seconds+' 秒一次':'手动扫描'} · 每查询最多 ${s.result_limit} 条样本 · 崛起门槛 ${s.min_authors} 位独立作者。页面关闭后，服务继续运行即可保持监控。</div>`;
-  $('#agents-view').innerHTML=`<div class="view-grid">${state.agents.map((a,i)=>`<article class="panel info-card"><div class="source-title"><span class="eyebrow">AGENT / 0${i+1}</span><span class="badge">${states[agentState(a.id)]||'待命'}</span></div><h3>${agentIcons[i]} ${e(a.name)}</h3><p>${e(a.role)}</p><span class="badge">${e(a.kind==='rules_or_llm'?(s.llm_enabled?'规则 + 可选模型':'规则分析'):a.kind==='tool'?'只读工具':'确定性规则')}</span></article>`).join('')}</div><div class="view-notice">每轮采集最多 2 个查询并发；核验并行执行。启用模型后，前 5 个话题分别由机会与质疑角色并行分析，最多 2 个话题同时调用；模型引用必须来自本轮证据。${cap.llm?'已配置模型：'+e(cap.llm_model):'尚未配置本地 Ollama，当前使用免费规则流程。'}</div><button class="button secondary" data-config>配置模型与执行参数</button>`;
+  ].map(([name,key,ready,desc])=>`<article class="panel info-card"><div class="source-title"><span class="eyebrow">${e(key.toUpperCase())}</span><span class="source-status">${ready?'● '+(['agent_reach','opencli'].includes(key)?'已安装，登录待检查':'可用'):'○ 待配置'}</span></div><h3>${name}</h3><p>${desc}</p><span class="badge">${s.mode===key?'当前使用':key==='model'?(s.llm_enabled?'已启用':'可选增强'):'未启用'}</span></article>`).join('')}</div><section class="panel activity-panel"><div class="panel-header"><h2>免费接入 <small>GET CONNECTED</small></h2></div><div class="query-list"><p>1. 安装 Node.js ≥ 20.18.1 后，在终端运行 <code>npm install -g @jackwener/opencli</code>。</p><p>2. 在 Chrome 安装 <a class="amber" href="https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk" target="_blank" rel="noopener noreferrer">官方 OpenCLI 扩展 ↗</a>，并自行登录 X。</p><p>3. 运行 <code>opencli doctor</code> 检查连接，保持 Chrome 打开，然后点击立即扫描。</p><p class="muted">已有 Agent Reach 可在配置中选择；AI 研判通过你配置的 OpenAI 兼容接口提供。</p></div></section><section class="panel activity-panel"><div class="panel-header"><h2>监控查询 <small>WATCH QUERIES</small></h2><button class="button secondary" data-config>编辑查询</button></div><div class="query-list">${s.queries.map((q,i)=>`<div class="query-line"><span class="amber mono">0${i+1} / </span>${e(q)}</div>`).join('')}</div></section><div class="view-notice">当前节奏：${s.auto_scan?'自动扫描，每 '+s.interval_seconds+' 秒一次':'手动扫描'} · 每查询最多 ${s.result_limit} 条样本 · 崛起门槛 ${s.min_authors} 位独立作者。页面关闭后，服务继续运行即可保持监控。</div>`;
+  $('#agents-view').innerHTML=`<div class="view-grid">${state.agents.map((a,i)=>`<article class="panel info-card"><div class="source-title"><span class="eyebrow">AGENT / 0${i+1}</span><span class="badge">${states[agentState(a.id)]||'待命'}</span></div><h3>${agentIcons[i]} ${e(a.name)}</h3><p>${e(a.role)}</p><span class="badge">${e(a.kind==='rules_or_llm'?(s.llm_enabled?'规则 + 可选模型':'规则分析'):a.kind==='tool'?'只读工具':'确定性规则')}</span></article>`).join('')}</div><div class="view-notice">每轮采集最多 2 个查询并发；核验并行执行。启用模型后，前 5 个话题分别由机会与质疑角色并行分析，最多 2 个话题同时调用；模型引用必须来自本轮证据。${cap.llm?'已配置模型：'+e(cap.llm_model):'尚未配置模型接口，请点击顶部「AI 接口」填写配置。'}</div><button class="button secondary" data-model-config>配置 AI 模型接口</button>`;
   $('#runs-view').innerHTML=`<section class="panel"><div class="panel-header"><h2>运行档案 <small>MISSION ARCHIVE</small></h2><span class="badge">最近 ${state.runs.length} 次</span></div><div class="table-scroll">${state.runs.length?`<table class="run-table"><thead><tr><th>任务编号</th><th>开始时间（上海）</th><th>模式</th><th>耗时</th><th>状态</th><th>执行信息</th></tr></thead><tbody>${state.runs.map(r=>`<tr><td class="mono">${e(r.id)}</td><td>${date(r.started)}</td><td>${e(modes[r.mode]||r.mode)}</td><td>${r.finished?((new Date(r.finished)-new Date(r.started))/1000).toFixed(1)+'s':'—'}</td><td>${states[r.state]||e(r.state)}</td><td class="run-error">${e(r.error||'—')}</td></tr>`).join('')}</tbody></table>`:empty('尚无运行记录')}</div></section><p class="view-notice">运行记录和阶段事件保存在本机。失败或取消的扫描不会覆盖上一份完整情报。</p>`;
 }
 function render() {
@@ -98,7 +98,7 @@ function render() {
   $('#metric-rising').textContent=String(topics.filter(t=>t.state==='加速崛起').length).padStart(2,'0');
   $('#metric-posts').textContent=snap?fmt(snap.sample_count):'—';
   $('#metric-coverage').textContent=snap?({synthetic:'合成数据 · 演示专用',sampled:'抽样覆盖 · 非全站统计',ranked_sampled:'热门排序抽样 · 非最新时间线'}[snap.coverage]||snap.coverage):'等待首次扫描';
-  $('#metric-engine').textContent=s.llm_enabled?'前 5 话题 · 本地 Ollama 双视角':'工具与规则模式 · 模型未启用';
+  $('#metric-engine').textContent=s.llm_enabled?'前 5 话题 · AI 双视角研判':'工具与规则模式 · 模型未启用';
   $('#scan').disabled=!!state.active; $('#scan').innerHTML=state.active?'扫描执行中…':'<span>⌁</span> 立即扫描';
   $('#cancel').classList.toggle('hidden',!state.active);
   $('#export').disabled=!snap;
@@ -117,6 +117,43 @@ function openSettings() {
   }
   $('#settings-error').textContent=''; updateHint(); $('#settings-dialog').showModal();
 }
+function openModel() {
+  if(!state) return;
+  const f=$('#model-form'), config=state.model;
+  for(const key of ['base_url','model','timeout_seconds','max_tokens']) f.elements[key].value=config[key];
+  f.elements.api_key.value=''; f.elements.clear_api_key.checked=false;
+  f.elements.json_mode.checked=config.json_mode;
+  f.elements.enabled.checked=state.settings.llm_enabled || !config.ready;
+  f.elements.api_key.placeholder=config.api_key_set?'已保存，留空保留原密钥':'填写 API Key；无鉴权的兼容接口可留空';
+  $('#key-status').textContent=config.api_key_set?'● 已保存密钥':'○ 未保存密钥';
+  $('#model-feedback').textContent=''; $('#model-feedback').className='model-feedback';
+  $('#model-dialog').showModal();
+}
+function modelPayload() {
+  const f=$('#model-form');
+  return {base_url:f.elements.base_url.value.trim(),model:f.elements.model.value.trim(),
+    api_key:f.elements.api_key.value,clear_api_key:f.elements.clear_api_key.checked,
+    timeout_seconds:Number(f.elements.timeout_seconds.value),max_tokens:Number(f.elements.max_tokens.value),
+    json_mode:f.elements.json_mode.checked,enabled:f.elements.enabled.checked};
+}
+async function modelAction(test) {
+  const f=$('#model-form'); if(!f.reportValidity())return;
+  const feedback=$('#model-feedback'); feedback.className='model-feedback';
+  feedback.textContent=test?'正在测试连接…':'正在保存接口…';
+  $('#test-model').disabled=true; $('#save-model').disabled=true;
+  try {
+    const result=await api(test?'/model/test':'/model',{method:test?'POST':'PUT',body:JSON.stringify(modelPayload())});
+    feedback.classList.add('success'); feedback.textContent=test?result.message:'接口已保存';
+    if(!test){ f.elements.api_key.value=''; $('#model-dialog').close(); await refresh(); toast('AI 接口已保存'); }
+  } catch(err){feedback.classList.add('error');feedback.textContent=err.message;}
+  finally {$('#test-model').disabled=false;$('#save-model').disabled=false;}
+}
+$('#model-config').addEventListener('click',openModel);
+$('#close-model').addEventListener('click',()=>{$('#model-form').elements.api_key.value='';$('#model-dialog').close();});
+$('#model-dialog').addEventListener('close',()=>{$('#model-form').elements.api_key.value='';});
+$('#preset-deepseek').addEventListener('click',()=>{$('#model-form').elements.base_url.value='https://api.deepseek.com';$('#model-base').focus();});
+$('#test-model').addEventListener('click',()=>modelAction(true));
+$('#model-form').addEventListener('submit',ev=>{ev.preventDefault();modelAction(false);});
 function updateHint() {
   const mode=$('#settings-form').elements.mode.value, cap=state.capabilities;
   $('#credentials-hint').textContent=mode==='demo'?'无需凭据，运行合成样本。':mode==='opencli'?(cap.opencli?'已安装 OpenCLI。请保持 Chrome 打开，安装官方 Browser Bridge 扩展并自行登录 X。':'尚未安装 OpenCLI。请先按情报源页的免费接入步骤安装，无需购买 API。'):(cap.agent_reach?'检测到 Agent Reach。请自行登录 X；此入口为热门排序抽样。':'尚未安装 Agent Reach。请按官方说明安装当前版本，并自行登录 X；无需购买 API。');
@@ -142,7 +179,7 @@ $('#search').addEventListener('input',renderTopics); $('#sort').addEventListener
 $('#topic-list').addEventListener('click',ev=>{const b=ev.target.closest('[data-topic]');if(!b)return;selected=b.dataset.topic;renderTopics();renderChart();renderDetail();});
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>changeView(b.dataset.view)));
 $('#configure').addEventListener('click',openSettings); $('#settings-nav').addEventListener('click',openSettings);
-document.addEventListener('click',ev=>{if(ev.target.closest('[data-config]'))openSettings();});
+document.addEventListener('click',ev=>{if(ev.target.closest('[data-config]'))openSettings();if(ev.target.closest('[data-model-config]'))openModel();});
 document.querySelectorAll('.close-dialog').forEach(b=>b.addEventListener('click',()=>$('#settings-dialog').close()));
 $('#settings-form').elements.mode.addEventListener('change',updateHint);
 $('#settings-form').addEventListener('submit',async ev=>{
@@ -160,6 +197,6 @@ $('#fullscreen').addEventListener('click',async()=>{
 document.addEventListener('keydown',ev=>{if(ev.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)&&!$('#settings-dialog').open){ev.preventDefault();changeView('command');$('#search').focus();}});
 setInterval(()=>{$('#clock').textContent=new Date().toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}).replaceAll('/','.');},1000);
 (async()=>{
-  try{token=(await (await fetch('/api/session')).json()).token;await refresh();connectEvents();if(!state.snapshot&&state.settings.mode==='demo'&&!state.active)await scan();setInterval(()=>refresh().catch(()=>{}),15000);}
+  try{token=(await (await fetch('/api/session')).json()).token;await refresh();connectEvents();if(!state.snapshot&&state.settings.mode==='demo'&&!state.settings.llm_enabled&&!state.active)await scan();setInterval(()=>refresh().catch(()=>{}),15000);}
   catch(err){$('#connection').textContent='○ 连接失败';$('#connection').classList.add('disconnected');toast(err.message);$('#mode-description').textContent='无法连接服务，请检查后端并刷新页面。';}
 })();

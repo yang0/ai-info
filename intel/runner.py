@@ -29,12 +29,13 @@ class Runner:
         if utcnow().timestamp() < self.cooldown_until:
             raise ValueError(f'采集限流冷却中，请在 {int(self.cooldown_until-utcnow().timestamp())+1} 秒后重试')
         settings = self.store.settings()
+        model_config = self.store.model_config()
         run = {'id': uuid.uuid4().hex[:12], 'started': utcnow().isoformat(),
                'state': 'running', 'mode': settings.mode, 'scope': settings.dataset_key(), 'finished': None, 'error': None}
         self.active = run
         self.last_started = utcnow().timestamp()
         self.store.run(run)
-        self.task = asyncio.create_task(self.execute(run, settings))
+        self.task = asyncio.create_task(self.execute(run, settings, model_config))
         return run.copy()
 
     def emit(self, run, agent, state, message):
@@ -50,7 +51,7 @@ class Runner:
         self.emit(run, agent, 'done', '执行完成')
         return result
 
-    async def execute(self, run, settings):
+    async def execute(self, run, settings, model_config):
         stage = 'scout'
         try:
             now = utcnow()
@@ -90,10 +91,10 @@ class Runner:
                 sem = asyncio.Semaphore(2)
                 async def one(i, t):
                     async with sem:
-                        return await assess(t, settings.llm_enabled and i < 5)
+                        return await assess(t, settings.llm_enabled and i < 5, model_config)
                 return await asyncio.gather(*(one(i, t) for i, t in enumerate(topics)))
             topics = await self.stage(run, 'analyst', assess_all)
-            self.emit(run, 'analyst', 'info', f"{sum(t['assessment']['engine']=='llm' for t in topics)} 个话题使用本地双角色研判，其余使用规则")
+            self.emit(run, 'analyst', 'info', f"{sum(t['assessment']['engine']=='llm' for t in topics)} 个话题使用兼容接口双角色研判，其余使用规则")
             stage = 'editor'
             self.emit(run, 'editor', 'running', '归档带证据的观测快照')
             snapshot = {'run_id': run['id'], 'mode': settings.mode, 'coverage': coverage,

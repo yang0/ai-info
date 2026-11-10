@@ -3,6 +3,7 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 from .models import Settings, Post, utcnow
+from .llm import ModelConfig, ModelUpdate, ModelError
 
 
 class Store:
@@ -20,6 +21,7 @@ class Store:
             CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT,
               run_id TEXT, time TEXT, agent TEXT, state TEXT, message TEXT);
             CREATE TABLE IF NOT EXISTS snapshots (mode TEXT PRIMARY KEY, body TEXT);
+            CREATE TABLE IF NOT EXISTS model_config (id INTEGER PRIMARY KEY, body TEXT NOT NULL);
             ''')
             # An interrupted process must never leave a run looking active.
             for row in db.execute("SELECT id,body FROM runs WHERE state='running'").fetchall():
@@ -47,6 +49,38 @@ class Store:
     def save_settings(self, settings: Settings):
         with self.connect() as db:
             db.execute('INSERT OR REPLACE INTO settings VALUES(1,?)', (settings.model_dump_json(),))
+
+    def model_config(self):
+        with self.connect() as db:
+            row = db.execute('SELECT body FROM model_config WHERE id=1').fetchone()
+        return ModelConfig.model_validate_json(row['body']) if row else ModelConfig.environment()
+
+    def resolve_model(self, update: ModelUpdate):
+        existing = self.model_config()
+        new_key = update.api_key.get_secret_value().strip() if update.api_key else ''
+        if (update.base_url != existing.base_url and existing.api_key.get_secret_value()
+                and not new_key and not update.clear_api_key):
+            raise ValueError('接口地址已改变，请重新填写 API Key 或勾选清除旧密钥')
+        values = update.model_dump(exclude={'api_key', 'clear_api_key', 'enabled'})
+        values['api_key'] = new_key or ('' if update.clear_api_key else existing.api_key.get_secret_value())
+        return ModelConfig.model_validate(values)
+
+    def save_model(self, update: ModelUpdate):
+        config = self.resolve_model(update)
+        if update.enabled and not config.ready:
+            raise ModelError('请填写接口地址与模型名称，再启用 AI 研判')
+        # Only this private database serialization includes the key. Public API,
+        # snapshots, reports and events exclusively use config.public().
+        values = {**config.model_dump(exclude={'api_key'}), 'api_key': config.api_key.get_secret_value()}
+        with self.connect() as db:
+            db.execute('INSERT OR REPLACE INTO model_config VALUES(1,?)',
+                       (json.dumps(values, ensure_ascii=False),))
+            settings = self.settings()
+            settings.model_revision += 1
+            if update.enabled is not None:
+                settings.llm_enabled = update.enabled
+            db.execute('INSERT OR REPLACE INTO settings VALUES(1,?)', (settings.model_dump_json(),))
+        return config
 
     def put_posts(self, mode: str, posts: list[Post]):
         with self.connect() as db:
