@@ -1,0 +1,8 @@
+{
+  "name": "ai-info-preview",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "check": "node --check web/app.js && python -m unittest discover -s tests -v"
+  }
+}
