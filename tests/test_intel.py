@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import sqlite3
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -164,6 +165,12 @@ class RunnerTests(unittest.IsolatedAsyncioTestCase):
         self.store=Store(Path(self.tmp.name));self.runner=Runner(self.store)
 
     def tearDown(self): self.tmp.cleanup()
+
+    def test_database_connection_is_closed_after_transaction(self):
+        with self.store.connect() as db:
+            db.execute('SELECT 1')
+        with self.assertRaises(sqlite3.ProgrammingError):
+            db.execute('SELECT 1')
 
     async def test_demo_full_pipeline_persists_events_and_brief(self):
         self.store.save_settings(Settings(mode='demo'))

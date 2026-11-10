@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from .models import Settings, Post, utcnow
 
@@ -27,10 +28,16 @@ class Store:
                 db.execute('UPDATE runs SET state=?,body=? WHERE id=?',
                            ('interrupted', json.dumps(body), row['id']))
 
+    @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=10)
         db.row_factory = sqlite3.Row
-        return db
+        try:
+            # sqlite3.Connection.__exit__ commits/rolls back, but does not close.
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def settings(self) -> Settings:
         with self.connect() as db:
